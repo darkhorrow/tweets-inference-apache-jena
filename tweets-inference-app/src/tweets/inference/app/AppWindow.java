@@ -1,8 +1,24 @@
 package tweets.inference.app;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import javax.swing.JFileChooser;
+import org.apache.jena.rdf.model.InfModel;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
+import org.apache.jena.reasoner.Reasoner;
+import org.apache.jena.reasoner.ReasonerRegistry;
+import org.apache.jena.reasoner.ValidityReport;
+import org.apache.jena.reasoner.ValidityReport.Report;
+import org.apache.jena.riot.RDFDataMgr;
 
 public class AppWindow extends javax.swing.JFrame {
+    
+    private List<Statement> inferences = new ArrayList<>();
+    private List<Report> reports = new ArrayList<>();
 
     public AppWindow() {
         initComponents();
@@ -23,7 +39,7 @@ public class AppWindow extends javax.swing.JFrame {
         dataButton = new javax.swing.JButton();
         jPanel1 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTextArea1 = new javax.swing.JTextArea();
+        outputLog = new javax.swing.JTextArea();
         successInference = new javax.swing.JRadioButton();
         jRadioButton1 = new javax.swing.JRadioButton();
         submitButton = new javax.swing.JButton();
@@ -104,17 +120,13 @@ public class AppWindow extends javax.swing.JFrame {
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("Output"));
 
-        jTextArea1.setColumns(20);
-        jTextArea1.setRows(5);
-        jScrollPane1.setViewportView(jTextArea1);
+        outputLog.setColumns(20);
+        outputLog.setRows(5);
+        jScrollPane1.setViewportView(outputLog);
 
         outputGroupButton.add(successInference);
+        successInference.setSelected(true);
         successInference.setText("Asigned classes from inference");
-        successInference.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                successInferenceActionPerformed(evt);
-            }
-        });
 
         outputGroupButton.add(jRadioButton1);
         jRadioButton1.setText("Violation of restrictions in data");
@@ -143,6 +155,12 @@ public class AppWindow extends javax.swing.JFrame {
         );
 
         submitButton.setText("Start process");
+        submitButton.setEnabled(false);
+        submitButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                submitButtonActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -175,17 +193,60 @@ public class AppWindow extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void schemeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_schemeButtonActionPerformed
-
+        JFileChooser fc = new JFileChooser();
+        if(fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            schemePath.setText(fc.getSelectedFile().getAbsolutePath());
+        }
+        submitButtonCheck();
     }//GEN-LAST:event_schemeButtonActionPerformed
 
     private void dataButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dataButtonActionPerformed
-        // TODO add your handling code here:
+        JFileChooser fc = new JFileChooser();
+        if(fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            dataPath.setText(fc.getSelectedFile().getAbsolutePath());
+        }
+        submitButtonCheck();
     }//GEN-LAST:event_dataButtonActionPerformed
 
-    private void successInferenceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_successInferenceActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_successInferenceActionPerformed
+    private void submitButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_submitButtonActionPerformed
+        Model scheme = RDFDataMgr.loadModel(schemePath.getText());
+        Model data = RDFDataMgr.loadModel(dataPath.getText());
+        
+        Reasoner reasoner = ReasonerRegistry
+                .getRDFSSimpleReasoner()
+                .bindSchema(scheme);
+        
+        InfModel inference = ModelFactory.createInfModel(reasoner, data);
+        generateInferencesLog(inference);
+        
+        ValidityReport validator = inference.validate();
+        generateValidationLog(validator);
+    }//GEN-LAST:event_submitButtonActionPerformed
 
+    private void submitButtonCheck() {
+        if(!schemePath.getText().equals("") && !dataPath.getText().equals("")) {
+            submitButton.setEnabled(true);
+        } else {
+            submitButton.setEnabled(false);
+        }
+    }
+    
+    private void generateInferencesLog(InfModel inference) {
+        StmtIterator iterator = inference.listStatements();
+        while(iterator.hasNext()) {
+            inferences.add(iterator.next());  
+        }
+    }
+    
+    private void generateValidationLog(ValidityReport validator) {
+        if(!validator.isValid()) {
+            Iterator iterator = validator.getReports();
+            while(iterator.hasNext()) {
+                reports.add((Report) iterator.next());
+            }
+        }
+    }
+    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton dataButton;
     private javax.swing.JTextField dataPath;
@@ -196,8 +257,8 @@ public class AppWindow extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel3;
     private javax.swing.JRadioButton jRadioButton1;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTextArea jTextArea1;
     private javax.swing.ButtonGroup outputGroupButton;
+    private javax.swing.JTextArea outputLog;
     private javax.swing.JButton schemeButton;
     private javax.swing.JTextField schemePath;
     private javax.swing.JButton submitButton;
