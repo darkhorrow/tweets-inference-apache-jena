@@ -14,6 +14,7 @@ import org.apache.jena.reasoner.ReasonerRegistry;
 import org.apache.jena.reasoner.ValidityReport;
 import org.apache.jena.reasoner.ValidityReport.Report;
 import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RDFFormat;
 
 public class AppWindow extends javax.swing.JFrame {
     
@@ -127,9 +128,19 @@ public class AppWindow extends javax.swing.JFrame {
         outputGroupButton.add(successInference);
         successInference.setSelected(true);
         successInference.setText("Asigned classes from inference");
+        successInference.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                successInferenceActionPerformed(evt);
+            }
+        });
 
         outputGroupButton.add(jRadioButton1);
         jRadioButton1.setText("Violation of restrictions in data");
+        jRadioButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jRadioButton1ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -223,6 +234,14 @@ public class AppWindow extends javax.swing.JFrame {
         generateValidationLog(validator);
     }//GEN-LAST:event_submitButtonActionPerformed
 
+    private void successInferenceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_successInferenceActionPerformed
+        appendInferencesLog();
+    }//GEN-LAST:event_successInferenceActionPerformed
+
+    private void jRadioButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jRadioButton1ActionPerformed
+        appendValidationLog();
+    }//GEN-LAST:event_jRadioButton1ActionPerformed
+
     private void submitButtonCheck() {
         if(!schemePath.getText().equals("") && !dataPath.getText().equals("")) {
             submitButton.setEnabled(true);
@@ -232,19 +251,43 @@ public class AppWindow extends javax.swing.JFrame {
     }
     
     private void generateInferencesLog(InfModel inference) {
+        inferences = new ArrayList<>();
         StmtIterator iterator = inference.listStatements();
         while(iterator.hasNext()) {
-            inferences.add(iterator.next());  
+            inferences.add(iterator.next());
         }
     }
     
     private void generateValidationLog(ValidityReport validator) {
+        reports = new ArrayList<>();
         if(!validator.isValid()) {
             Iterator iterator = validator.getReports();
             while(iterator.hasNext()) {
                 reports.add((Report) iterator.next());
             }
         }
+    }
+    
+    private void appendInferencesLog() {
+        outputLog.setText("");
+        String result = "";
+        for(Statement stmt : inferences) {
+           result += outputLog.getText() + stmt + "\n";
+        }
+        outputLog.setText(result);
+    }
+    
+    private void appendValidationLog() {
+        outputLog.setText("");
+        if(reports.isEmpty()) {
+            outputLog.setText("The data file has been validated successfully\n");
+            return;
+        } 
+        String result = "";
+        for(Report stmt : reports) {
+            result += outputLog.getText() + stmt + "\n";
+        }
+        outputLog.setText(result);
     }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
